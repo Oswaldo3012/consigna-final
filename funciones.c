@@ -28,50 +28,70 @@ float promedioPonderado(float valores[], float pesos[], int n) {
     return suma;
 }
 
-void cargarDatos(FILE *file, Zona zonas[]) {
-    int zonaIndex = -1;
-    for (int i = 0; i < NUM_ZONAS * NUM_DIAS_HIST; i++) {
-        char nombre[50];
-        float CO2, SO2, NO2, PM25, temp, viento, humedad;
-
-        fscanf(file, "%s %f %f %f %f %f %f %f",
-            nombre, &CO2, &SO2, &NO2, &PM25, &temp, &viento, &humedad);
-
-        if (i % NUM_DIAS_HIST == 0) {
-            zonaIndex++;
-            strcpy(zonas[zonaIndex].nombre, nombre);
-        }
-
-        int dia = i % NUM_DIAS_HIST;
-        zonas[zonaIndex].historial[dia].contaminacion.CO2 = CO2;
-        zonas[zonaIndex].historial[dia].contaminacion.SO2 = SO2;
-        zonas[zonaIndex].historial[dia].contaminacion.NO2 = NO2;
-        zonas[zonaIndex].historial[dia].contaminacion.PM25 = PM25;
-        zonas[zonaIndex].historial[dia].temperatura = temp;
-        zonas[zonaIndex].historial[dia].viento = viento;
-        zonas[zonaIndex].historial[dia].humedad = humedad;
-    }
-
+void cargarDatos(FILE *file, Zona zonas[], const char* archivoActuales) {
+    // Inicializar zonas y contadores
     for (int i = 0; i < NUM_ZONAS; i++) {
-        char nombre[50];
-        float CO2, SO2, NO2, PM25, temp, viento, humedad;
-
-        fscanf(file, "%s %f %f %f %f %f %f %f",
-            nombre, &CO2, &SO2, &NO2, &PM25, &temp, &viento, &humedad);
-
-        // Buscar la zona correspondiente por nombre (sin sobrescribir el nombre)
-        for (int j = 0; j < NUM_ZONAS; j++) {
-            if (strcmp(zonas[j].nombre, nombre) == 0) {
-                zonas[j].actual.contaminacion.CO2 = CO2;
-                zonas[j].actual.contaminacion.SO2 = SO2;
-                zonas[j].actual.contaminacion.NO2 = NO2;
-                zonas[j].actual.contaminacion.PM25 = PM25;
-                zonas[j].actual.temperatura = temp;
-                zonas[j].actual.viento = viento;
-                zonas[j].actual.humedad = humedad;
+        zonas[i].nombre[0] = '\0';
+        for (int d = 0; d < NUM_DIAS_HIST; d++) {
+            zonas[i].historial[d].contaminacion.CO2 = 0;
+            zonas[i].historial[d].contaminacion.SO2 = 0;
+            zonas[i].historial[d].contaminacion.NO2 = 0;
+            zonas[i].historial[d].contaminacion.PM25 = 0;
+            zonas[i].historial[d].temperatura = 0;
+            zonas[i].historial[d].viento = 0;
+            zonas[i].historial[d].humedad = 0;
+        }
+        zonas[i].actual.contaminacion.CO2 = 0;
+        zonas[i].actual.contaminacion.SO2 = 0;
+        zonas[i].actual.contaminacion.NO2 = 0;
+        zonas[i].actual.contaminacion.PM25 = 0;
+        zonas[i].actual.temperatura = 0;
+        zonas[i].actual.viento = 0;
+        zonas[i].actual.humedad = 0;
+    }
+    int diasPorZona[NUM_ZONAS] = {0};
+    char nombre[50];
+    float CO2, SO2, NO2, PM25, temp, viento, humedad;
+    while (fscanf(file, "%s %f %f %f %f %f %f %f", nombre, &CO2, &SO2, &NO2, &PM25, &temp, &viento, &humedad) == 8) {
+        int zonaIdx = -1;
+        for (int i = 0; i < NUM_ZONAS; i++) {
+            if (zonas[i].nombre[0] == '\0' || strcmp(zonas[i].nombre, nombre) == 0) {
+                zonaIdx = i;
+                if (zonas[i].nombre[0] == '\0') strcpy(zonas[i].nombre, nombre);
                 break;
             }
         }
+        if (zonaIdx == -1) continue;
+        if (diasPorZona[zonaIdx] < NUM_DIAS_HIST) {
+            int dia = diasPorZona[zonaIdx];
+            zonas[zonaIdx].historial[dia].contaminacion.CO2 = CO2;
+            zonas[zonaIdx].historial[dia].contaminacion.SO2 = SO2;
+            zonas[zonaIdx].historial[dia].contaminacion.NO2 = NO2;
+            zonas[zonaIdx].historial[dia].contaminacion.PM25 = PM25;
+            zonas[zonaIdx].historial[dia].temperatura = temp;
+            zonas[zonaIdx].historial[dia].viento = viento;
+            zonas[zonaIdx].historial[dia].humedad = humedad;
+            diasPorZona[zonaIdx]++;
+        }
+    }
+    // Leer datos actuales desde archivo aparte
+    FILE *fact = fopen(archivoActuales, "r");
+    if (fact) {
+        while (fscanf(fact, "%s %f %f %f %f %f %f %f", nombre, &CO2, &SO2, &NO2, &PM25, &temp, &viento, &humedad) == 8) {
+            for (int i = 0; i < NUM_ZONAS; i++) {
+                if (strcmp(zonas[i].nombre, nombre) == 0) {
+                    zonas[i].actual.contaminacion.CO2 = CO2;
+                    zonas[i].actual.contaminacion.SO2 = SO2;
+                    zonas[i].actual.contaminacion.NO2 = NO2;
+                    zonas[i].actual.contaminacion.PM25 = PM25;
+                    zonas[i].actual.temperatura = temp;
+                    zonas[i].actual.viento = viento;
+                    zonas[i].actual.humedad = humedad;
+                    break;
+                }
+            }
+        }
+        fclose(fact);
     }
 }
 
@@ -191,28 +211,50 @@ void guardarReporte(Zona zonas[]) {
         printf("Error al abrir archivo de salida.\n");
         return;
     }
+    fprintf(fout, "%-10s | %-8s | %-8s | %-8s | %-8s | %-8s | %-8s | %-8s\n", "Zona", "CO2", "SO2", "NO2", "PM2.5", "Temp", "Viento", "Humedad");
+    fprintf(fout, "-------------------------------------------------------------------------------------\n");
     for (int i = 0; i < NUM_ZONAS; i++) {
-        fprintf(fout, "Zona: %s\n", zonas[i].nombre);
-        fprintf(fout, "ACTUAL -> CO2: %.2f, SO2: %.2f, NO2: %.2f, PM2.5: %.2f\n",
+        // Actual
+        fprintf(fout, "%-10s | %8.2f | %8.2f | %8.2f | %8.2f | %8.2f | %8.2f | %8.2f\n",
+            zonas[i].nombre,
             zonas[i].actual.contaminacion.CO2,
             zonas[i].actual.contaminacion.SO2,
             zonas[i].actual.contaminacion.NO2,
-            zonas[i].actual.contaminacion.PM25);
-        fprintf(fout, "PREDICCIÓN -> CO2: %.2f, SO2: %.2f, NO2: %.2f, PM2.5: %.2f\n",
+            zonas[i].actual.contaminacion.PM25,
+            zonas[i].actual.temperatura,
+            zonas[i].actual.viento,
+            zonas[i].actual.humedad);
+        // Predicción
+        fprintf(fout, "Predicción  | %8.2f | %8.2f | %8.2f | %8.2f | %8.2f | %8.2f | %8.2f\n",
             zonas[i].prediccion.contaminacion.CO2,
             zonas[i].prediccion.contaminacion.SO2,
             zonas[i].prediccion.contaminacion.NO2,
-            zonas[i].prediccion.contaminacion.PM25);
-
+            zonas[i].prediccion.contaminacion.PM25,
+            zonas[i].prediccion.temperatura,
+            zonas[i].prediccion.viento,
+            zonas[i].prediccion.humedad);
+        // Alertas
         if (superaLimite(zonas[i].actual.contaminacion))
             fprintf(fout, "Alerta ACTUAL: niveles sobre límites.\n");
         if (superaLimite(zonas[i].prediccion.contaminacion))
             fprintf(fout, "Alerta PREDICCIÓN: niveles sobre límites.\n");
-
-        fprintf(fout, "-----------------------------------\n");
+        fprintf(fout, "-------------------------------------------------------------------------------------\n");
     }
     fclose(fout);
     printf("Reporte exportado en reporte.txt\n");
+}
+
+void guardarReporteBinario(Zona zonas[]) {
+    FILE *fbin = fopen("reporte.bin", "wb");
+    if (!fbin) {
+        printf("Error al abrir reporte.bin para escritura binaria.\n");
+        return;
+    }
+    for (int i = 0; i < NUM_ZONAS; i++) {
+        fwrite(&zonas[i], sizeof(Zona), 1, fbin);
+    }
+    fclose(fbin);
+    printf("Reporte binario exportado en reporte.bin\n");
 }
 
 void buscarPorZonaYDia(Zona zonas[]) {
@@ -230,8 +272,13 @@ void buscarPorZonaYDia(Zona zonas[]) {
         if (strcmp(zonas[i].nombre, nombre) == 0) {
             RegistroDia *r = &zonas[i].historial[dia];
             printf("\nZona: %s, Día: %d\n", nombre, dia);
-            printf("CO2: %.2f, SO2: %.2f, NO2: %.2f, PM2.5: %.2f\n", r->contaminacion.CO2, r->contaminacion.SO2, r->contaminacion.NO2, r->contaminacion.PM25);
-            printf("Temperatura: %.2f, Viento: %.2f, Humedad: %.2f\n", r->temperatura, r->viento, r->humedad);
+            printf("-------------------------------------------------------------\n");
+            printf("| %-8s | %-8s | %-8s | %-8s | %-8s | %-8s | %-8s |\n", "CO2", "SO2", "NO2", "PM2.5", "Temp", "Viento", "Humedad");
+            printf("-------------------------------------------------------------\n");
+            printf("| %8.2f | %8.2f | %8.2f | %8.2f | %8.2f | %8.2f | %8.2f |\n",
+                r->contaminacion.CO2, r->contaminacion.SO2, r->contaminacion.NO2, r->contaminacion.PM25,
+                r->temperatura, r->viento, r->humedad);
+            printf("-------------------------------------------------------------\n");
             return;
         }
     }
@@ -260,4 +307,49 @@ void mostrarPromediosHistoricos(Zona zonas[]) {
             zonas[i].nombre, promCO2, promSO2, promNO2, promPM25,
             supera ? "Sí" : "No");
     }
+}
+
+void modificarDatosZona(Zona zonas[]) {
+    char nombre[50];
+    printf("Ingrese el nombre de la zona a modificar (ejemplo: Zona1): ");
+    scanf("%s", nombre);
+    for (int i = 0; i < NUM_ZONAS; i++) {
+        if (strcmp(zonas[i].nombre, nombre) == 0) {
+            printf("\nDatos actuales de %s:\n", nombre);
+            printf("CO2: %.2f, SO2: %.2f, NO2: %.2f, PM2.5: %.2f\n", zonas[i].actual.contaminacion.CO2, zonas[i].actual.contaminacion.SO2, zonas[i].actual.contaminacion.NO2, zonas[i].actual.contaminacion.PM25);
+            printf("Temperatura: %.2f, Viento: %.2f, Humedad: %.2f\n", zonas[i].actual.temperatura, zonas[i].actual.viento, zonas[i].actual.humedad);
+            printf("\nIngrese los nuevos valores:\n");
+            printf("CO2: "); scanf("%f", &zonas[i].actual.contaminacion.CO2);
+            printf("SO2: "); scanf("%f", &zonas[i].actual.contaminacion.SO2);
+            printf("NO2: "); scanf("%f", &zonas[i].actual.contaminacion.NO2);
+            printf("PM2.5: "); scanf("%f", &zonas[i].actual.contaminacion.PM25);
+            printf("Temperatura: "); scanf("%f", &zonas[i].actual.temperatura);
+            printf("Viento: "); scanf("%f", &zonas[i].actual.viento);
+            printf("Humedad: "); scanf("%f", &zonas[i].actual.humedad);
+            printf("Datos modificados correctamente.\n");
+            return;
+        }
+    }
+    printf("Zona no encontrada.\n");
+}
+
+void guardarDatosActuales(Zona zonas[]) {
+    FILE *fout = fopen("datos_actuales.txt", "w");
+    if (!fout) {
+        printf("Error al guardar datos_actuales.txt\n");
+        return;
+    }
+    for (int i = 0; i < NUM_ZONAS; i++) {
+        fprintf(fout, "%s %.1f %.1f %.1f %.1f %.1f %.1f %.1f\n",
+            zonas[i].nombre,
+            zonas[i].actual.contaminacion.CO2,
+            zonas[i].actual.contaminacion.SO2,
+            zonas[i].actual.contaminacion.NO2,
+            zonas[i].actual.contaminacion.PM25,
+            zonas[i].actual.temperatura,
+            zonas[i].actual.viento,
+            zonas[i].actual.humedad);
+    }
+    fclose(fout);
+    printf("Datos actuales guardados en datos_actuales.txt\n");
 }
