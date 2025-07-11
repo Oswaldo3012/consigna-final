@@ -29,7 +29,7 @@ typedef struct {
 
 void inicializarPesos();
 float promedioPonderado(float valores[], float pesos[], int n);
-void cargarDatos(FILE *file, Zona zonas[]);
+void cargarDatos(FILE *file, Zona zonas[], const char* archivoActuales);
 void predecir(Zona zonas[]);
 int superaLimite(Contaminantes c);
 void mostrarNivelesActuales(Zona zonas[]);
@@ -39,5 +39,8 @@ void mostrarRecomendaciones(Zona zonas[]);
 void guardarReporte(Zona zonas[]);
 void buscarPorZonaYDia(Zona zonas[]);
 void mostrarPromediosHistoricos(Zona zonas[]);
+void modificarDatosZona(Zona zonas[]);
+void guardarDatosActuales(Zona zonas[]);
+void guardarReporteBinario(Zona zonas[]);
 
 #endif
