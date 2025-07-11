@@ -12,7 +12,7 @@ int main() {
     }
 
     inicializarPesos();
-    cargarDatos(fin, zonas);
+    cargarDatos(fin, zonas, "datos_actuales.txt");
     fclose(fin);
 
     predecir(zonas);
@@ -25,8 +25,9 @@ int main() {
         printf("4. Mostrar promedios históricos y comparación OMS\n");
         printf("5. Mostrar recomendaciones\n");
         printf("6. Buscar datos por zona y día\n");
-        printf("7. Exportar reporte a archivo\n");
+        printf("7. Exportar reporte a archivo (txt y binario)\n");
         printf("8. Salir\n");
+        printf("9. Modificar datos actuales de una zona\n");
         printf("=================\n");
         printf("Seleccione una opción: ");
         scanf("%d", &opcion);
@@ -38,8 +39,9 @@ int main() {
             case 4: mostrarPromediosHistoricos(zonas); break;
             case 5: mostrarRecomendaciones(zonas); break;
             case 6: buscarPorZonaYDia(zonas); break;
-            case 7: guardarReporte(zonas); break;
+            case 7: guardarReporte(zonas); guardarReporteBinario(zonas); break;
             case 8: printf("Saliendo...\n"); break;
+            case 9: modificarDatosZona(zonas); guardarDatosActuales(zonas); break;
             default: printf("Opción inválida.\n"); break;
         }
     } while (opcion != 8);
