@@ -7,6 +7,7 @@ const float LIM_SO2 = 20.0;
 const float LIM_NO2 = 40.0;
 const float LIM_PM25 = 25.0;
 
+
 float pesos[NUM_DIAS_HIST];
 
 void inicializarPesos() {
