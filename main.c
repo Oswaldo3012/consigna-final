@@ -5,6 +5,7 @@ int main() {
     Zona zonas[NUM_ZONAS];
     int opcion;
 
+    
     FILE *fin = fopen("datos.txt", "r");
     if (!fin) {
         printf("Error: no se pudo abrir datos.txt\n");
