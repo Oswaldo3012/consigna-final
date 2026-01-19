@@ -3,6 +3,7 @@
 #ifndef FUNCIONES_H
 #define FUNCIONES_H
 
+
 #define NUM_ZONAS 5
 #define NUM_DIAS_HIST 30
 
